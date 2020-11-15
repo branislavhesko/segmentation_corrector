@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from config import DataMode
+from config import Config, DataMode
 
 
 CurrentlyOpened = namedtuple("CurrentlyOpened", ["image", "mask", "id"])
@@ -68,12 +68,21 @@ class SmartRandomDataSet(Dataset):
         return rand_row.item(), rand_col.item()
 
 
-def get_data_loaders(config):
-    images = sorted(glob.glob(os.path.join(config.path, "*." + config.extension_image)))
-    masks = sorted(glob.glob(os.path.join(config.mask_path, "*." + config.extension_mask)))
-    data_loader = DataLoader(SmartRandomDataSet(config=config, img_files=images, mask_files=masks, crop_size=config.crop_size, transforms=lambda x, y: (x, y)))
+def get_data_loaders(config: Config):
+    images = sorted(glob.glob(os.path.join(config.path[DataMode.train], "*." + config.extension_image)))
+    masks = sorted(glob.glob(os.path.join(config.mask_path[DataMode.train], "*." + config.extension_mask)))
+    images_val = sorted(glob.glob(os.path.join(config.path[DataMode.eval], "*." + config.extension_image)))
+    masks_val = sorted(glob.glob(os.path.join(config.mask_path[DataMode.eval], "*." + config.extension_mask)))
+    data_loader = DataLoader(
+        SmartRandomDataSet(config=config, img_files=images, mask_files=masks, 
+                           crop_size=config.crop_size, transforms=config.augmentation),
+        batch_size=config.batch_size, num_workers=config.num_workers)
+    data_loader_val = DataLoader(
+        SmartRandomDataSet(config=config, img_files=images_val, mask_files=masks_val, 
+                           crop_size=config.crop_size, transforms=config.val_augmentation),
+        batch_size=1, num_workers=2)
     return {
-        DataMode.eval: data_loader,
+        DataMode.eval: data_loader_val,
         DataMode.train: data_loader
     }
 
