@@ -61,6 +61,7 @@ class _FinalBlock(torch.nn.Module):
             Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
             BatchNorm2d(in_channels),
             ReLU(inplace=True),
+            ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2),
             Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
             BatchNorm2d(in_channels),
             Conv2d(in_channels, out_channels, kernel_size=1),

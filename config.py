@@ -15,6 +15,7 @@ class DataMode(Enum):
 
 
 class Config:
+    num_epochs = 5
     batch_size = 2
     num_workers = 4
     extension_image = "tif"
@@ -28,12 +29,11 @@ class Config:
         DataMode.eval: "./data/pop1/validate/masks"
     }
     crop_size = (256, 256)
-    device = "cpu"
+    device = "cuda"
     num_random_crops_per_image = 10
     lr = 1e-4
 
     augmentation = ComposeTransforms([
-        Normalize(DataProps.MEAN, DataProps.STD),
         RandomRotate(0.6),
         RandomSquaredCrop(0.85),
         RandomHorizontalFlip(),
@@ -42,7 +42,11 @@ class Config:
         ToTensor()
     ])
     val_augmentation = ComposeTransforms([
-        Normalize(DataProps.MEAN, DataProps.STD),
         Transpose(),
         ToTensor()
     ])
+    live_visualization = True
+    frequency_visualization = {
+        DataMode.train: 100,
+        DataMode.eval: 50
+    }

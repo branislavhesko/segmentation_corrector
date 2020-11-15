@@ -11,10 +11,10 @@ class FocalLoss(torch.nn.Module):
         self._beta = beta
 
     def forward(self, labels, output):
-        loss_point = torch.sum((1 - output[
+        loss_point = torch.mean((1 - output[
             labels == 1.]) ** self._alfa * torch.log(output[labels == 1.]))
         loss_background = torch.mean((1 - labels) ** self._beta * output ** self._alfa * torch.log(1 - output))
-        return -1 * (loss_point + loss_background)
+        return -1 * (loss_point + 10 * loss_background)
 
 
 class TotalLoss(torch.nn.Module):
