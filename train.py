@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from config import Config, DataMode
 from data_loader import get_data_loaders
-from focal_loss import FocalLoss
+from focal_loss import FocalLoss, TotalLoss
 from modeling.fovea_net import FoveaNet
 
 
@@ -18,7 +18,7 @@ class Trainer:
     def __init__(self, config: Config):
         self._config = config
         self._model = FoveaNet(num_classes=1).to(self._config.device)
-        self._loss = FocalLoss()
+        self._loss = TotalLoss(config=config)
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
@@ -81,13 +81,13 @@ class Trainer:
 
     @staticmethod
     def _live_visualization(masks, output):
-        out = output[1, 0, :, :].detach().cpu().numpy().astype(np.float32) * 255
-        show = np.zeros((masks.shape[2], 3 * masks.shape[3], 3), dtype=np.float32)
-        show[:, :masks.shape[3], :] = cv2.applyColorMap((masks[1, 0, :, :].detach().cpu().numpy().astype(
-            np.float32) * 255).astype(np.uint8), cv2.COLORMAP_HOT)
-        show[:, masks.shape[3]: 2 * masks.shape[3], :] = cv2.applyColorMap((out).astype(np.uint8), cv2.COLORMAP_JET)
-        out[out < 180] = 0
-        show[:, 2 * masks.shape[3]:, :] = cv2.applyColorMap((out).astype(np.uint8), cv2.COLORMAP_JET)
+        out = output[1, 0, :, :].detach().cpu().numpy().astype(np.float32)
+        show = np.zeros((masks.shape[2], 3 * masks.shape[3]), dtype=np.float32)
+        show[:, :masks.shape[3]] = masks[1, 0, :, :].detach().cpu().numpy().astype(
+            np.float32)
+        show[:, masks.shape[3]: 2 * masks.shape[3]] = out
+        out[out < np.amax(out) * 0.9] = 0
+        show[:, 2 * masks.shape[3]:] = out
         cv2.imshow("training", show)
         cv2.waitKey(10)
 

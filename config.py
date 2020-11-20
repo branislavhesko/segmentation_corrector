@@ -53,3 +53,5 @@ class Config:
     }
 
     checkpoint_path = "./ckpt"
+    alfa = 2
+    beta = 4
