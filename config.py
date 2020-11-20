@@ -15,7 +15,8 @@ class DataMode(Enum):
 
 
 class Config:
-    num_epochs = 5
+    EXPERIMENT_NAME = "VESSELS"
+    num_epochs = 10
     batch_size = 2
     num_workers = 4
     extension_image = "tif"
@@ -50,3 +51,5 @@ class Config:
         DataMode.train: 100,
         DataMode.eval: 50
     }
+
+    checkpoint_path = "./ckpt"

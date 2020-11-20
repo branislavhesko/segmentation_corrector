@@ -1,4 +1,6 @@
 from glob import glob
+import os
+from os import stat
 import cv2
 import numpy as np
 import torch
@@ -20,10 +22,12 @@ class Trainer:
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
+        self._load()
 
     def train(self):
         for epoch in range(self._config.num_epochs):
             t = tqdm(self._loaders[DataMode.train])
+            self._model.train()
             for idx, data in enumerate(t):
                 self._optimizer.zero_grad()
                 imgs, masks, crop_info, opened_img, opened_mask = data
@@ -40,6 +44,16 @@ class Trainer:
 
                 if self._config.live_visualization:
                     self._live_visualization(masks, output)
+            self._save()
+
+    def validate(self, epoch):
+        t = tqdm(self._loaders[DataMode.eval])
+        self._model.eval()
+        for idx, data in enumerate(t):
+            imgs, masks, _, _, _ = data
+            imgs, masks = imgs.to(self._config.device), masks.to(self._config.device)
+            output = self._model(imgs)
+            loss = self._loss(masks, output)
 
     def _tensorboard_visualization(self, loss, epoch, idx, imgs, masks, output):
         self._writer.add_scalar("Loss/training", loss.item(), 
@@ -48,11 +62,32 @@ class Trainer:
         self._writer.add_images("Masks/training", masks, idx)
         self._writer.add_images("Outputs/training", output, idx)
 
+    def _save(self):
+        path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
+        self.check_and_mkdir(path)
+        torch.save(self._model.state_dict(), os.path.join(path, "w.pth"))
+
+    def _load(self):
+        path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
+        weights = glob(os.path.join(path, "*.pth"))
+        if len(weights):
+            state_dict = torch.load(weights[0])
+            self._model.load_state_dict(state_dict)
+
+    @staticmethod
+    def check_and_mkdir(path):
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
+
     @staticmethod
     def _live_visualization(masks, output):
-        show = np.zeros((masks.shape[2], 2 * masks.shape[3]), dtype=np.float32)
-        show[:, :masks.shape[3]] = masks[1, 0, :, :].detach().cpu().numpy().astype(np.float32)
-        show[:, masks.shape[3]:] = output[1, 0, :, :].detach().cpu().numpy().astype(np.float32)
+        out = output[1, 0, :, :].detach().cpu().numpy().astype(np.float32) * 255
+        show = np.zeros((masks.shape[2], 3 * masks.shape[3], 3), dtype=np.float32)
+        show[:, :masks.shape[3], :] = cv2.applyColorMap((masks[1, 0, :, :].detach().cpu().numpy().astype(
+            np.float32) * 255).astype(np.uint8), cv2.COLORMAP_HOT)
+        show[:, masks.shape[3]: 2 * masks.shape[3], :] = cv2.applyColorMap((out).astype(np.uint8), cv2.COLORMAP_JET)
+        out[out < 180] = 0
+        show[:, 2 * masks.shape[3]:, :] = cv2.applyColorMap((out).astype(np.uint8), cv2.COLORMAP_JET)
         cv2.imshow("training", show)
         cv2.waitKey(10)
 

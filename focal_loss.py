@@ -5,16 +5,17 @@ import torch
 
 class FocalLoss(torch.nn.Module):
 
-    def __init__(self, alfa=2., beta=4.):
+    def __init__(self, alfa=2., beta=4., eps=1e-5):
         super().__init__()
         self._alfa = alfa
         self._beta = beta
+        self._eps = eps
 
     def forward(self, labels, output):
         loss_point = torch.mean((1 - output[
-            labels == 1.]) ** self._alfa * torch.log(output[labels == 1.]))
-        loss_background = torch.mean((1 - labels) ** self._beta * output ** self._alfa * torch.log(1 - output))
-        return -1 * (loss_point + 10 * loss_background)
+            labels == 1.]) ** self._alfa * torch.log(output[labels == 1.] + self._eps))
+        loss_background = torch.mean((1 - labels) ** self._beta * output ** self._alfa * torch.log(1 - output + self._eps))
+        return -1 * (loss_point + loss_background)
 
 
 class TotalLoss(torch.nn.Module):
