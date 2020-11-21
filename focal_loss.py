@@ -32,7 +32,7 @@ class HardNegativeFocalLoss(torch.nn.Module):
         labels_enlarged = labels_enlarged - labels
         loss_background = torch.mean((1 - labels[labels_enlarged == 1]) ** self._beta * output[
             labels_enlarged == 1] ** self._alfa * torch.log(1 - output[labels_enlarged == 1] + self._eps))
-        return -loss_background
+        return -10 * loss_background
 
 
 class TotalLoss(torch.nn.Module):
