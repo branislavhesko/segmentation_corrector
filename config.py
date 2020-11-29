@@ -29,9 +29,9 @@ class Config:
         DataMode.train: "./data/pop1/train/masks",
         DataMode.eval: "./data/pop1/validate/masks"
     }
-    crop_size = (256, 256)
+    crop_size = (384, 384)
     device = "cuda"
-    num_random_crops_per_image = 10
+    num_random_crops_per_image = 2
     lr = 1e-4
 
     augmentation = ComposeTransforms([
@@ -58,15 +58,15 @@ class Config:
 
 
 class ConfigOpticDisc(Config):
-    device = "cpu"
+    device = "cuda"
     EXPERIMENT_NAME = "OPTIC_DISC"
     extension_image = "jpg"
     extension_mask = "jpg"
     path = {
-        DataMode.train: "/home/brani/code/data/train/imgs",
-        DataMode.eval: "/home/brani/code/data/validate/imgs"
+        DataMode.train: "./data/refugee/train/imgs",
+        DataMode.eval: "./data/refugee/validate/imgs"
     }
     mask_path = {
-        DataMode.train: "/home/brani/code/data/train/masks",
-        DataMode.eval: "/home/brani/code/data/validate/masks"
+        DataMode.train: "./data/refugee/train/masks",
+        DataMode.eval: "./data/refugee/validate/masks"
     }

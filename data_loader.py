@@ -74,7 +74,9 @@ class SmartRandomDataSetIdrid(SmartRandomDataSet):
     def process_mask(self, mask):
         mask[mask <= self.CLASS_VALUE] = 1
         mask[mask > self.CLASS_VALUE] = 0
-        return (cv2.distanceTransform(mask, cv2.DIST_L1, 0) == 1).astype(np.uint8)
+        mask_dilated = cv2.dilate(mask, np.ones((5, 5)))
+        return mask_dilated - mask
+        # return (cv2.distanceTransform(mask, cv2.DIST_L1, 0) == 1).astype(np.uint8)
 
 
 def get_data_loaders(config: Config):

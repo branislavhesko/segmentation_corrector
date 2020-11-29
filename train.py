@@ -10,6 +10,7 @@ from tqdm import tqdm
 from config import Config, ConfigOpticDisc, DataMode
 from data_loader import get_data_loaders
 from focal_loss import FocalLoss, TotalLoss
+from modeling.deeplab import DeepLab
 from modeling.fovea_net import FoveaNet
 
 
@@ -17,8 +18,8 @@ class Trainer:
 
     def __init__(self, config: Config):
         self._config = config
-        self._model = FoveaNet(num_classes=1).to(self._config.device)
-        self._loss = TotalLoss(config=config)
+        self._model = DeepLab(num_classes=1, output_stride=8, sync_bn=False).to(self._config.device)
+        self._loss = FocalLoss()
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
@@ -43,7 +44,7 @@ class Trainer:
                     self._tensorboard_visualization(loss, epoch, idx, imgs, masks, output)
 
                 if self._config.live_visualization:
-                    self._live_visualization(masks, output)
+                    self._live_visualization(imgs, masks, output)
             self._save()
 
     def validate(self, epoch):
@@ -80,14 +81,18 @@ class Trainer:
             os.makedirs(path, exist_ok=True)
 
     @staticmethod
-    def _live_visualization(masks, output):
-        out = output[1, 0, :, :].detach().cpu().numpy().astype(np.float32)
-        show = np.zeros((masks.shape[2], 3 * masks.shape[3]), dtype=np.float32)
-        show[:, :masks.shape[3]] = masks[1, 0, :, :].detach().cpu().numpy().astype(
-            np.float32)
-        show[:, masks.shape[3]: 2 * masks.shape[3]] = out
-        out[out < np.amax(out) * 0.9] = 0
-        show[:, 2 * masks.shape[3]:] = out
+    def _live_visualization(imgs, masks, output):
+        out = np.expand_dims((output[1, 0, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
+        # from matplotlib import pyplot as plt
+        # plt.imshow(out[:, :, 0])
+        # plt.show()
+        show = np.zeros((masks.shape[2], 3 * masks.shape[3], 3), dtype=np.float32)
+        show[:, :masks.shape[3]] = cv2.applyColorMap(
+            (masks[1, 0, :, :] * 255).detach().cpu().numpy().astype(
+                np.uint8), cv2.COLORMAP_BONE)
+        show[:, masks.shape[3]: 2 * masks.shape[3], :] = np.concatenate([out, out, out], axis=2)
+        show[:, 2 * masks.shape[3]:] = cv2.cvtColor(
+            imgs[1, ...].permute(1, 2, 0).cpu().detach().numpy(), cv2.COLOR_BGR2RGB)
         cv2.imshow("training", show)
         cv2.waitKey(10)
 
