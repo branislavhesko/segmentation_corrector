@@ -17,7 +17,7 @@ class Trainer:
 
     def __init__(self, config: Config):
         self._config = config
-        self._model = FoveaNet(num_classes=1).to(self._config.device)
+        self._model = FoveaNet(num_classes=1, stride=8).to(self._config.device)
         self._loss = TotalLoss(config=config)
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
