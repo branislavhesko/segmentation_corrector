@@ -38,7 +38,7 @@ class PredictorSingleFile(PredictorSingleImage):
 
 if __name__ == "__main__":
     predictor = PredictorSingleFile(config=Config())
-    output = predictor.execute("./Study01_00054_003.tif")
+    output = predictor.execute("./Study01_00040_003.tif")
     from matplotlib import pyplot as plt
-    plt.imshow(output, vmin=0.5, vmax=1., cmap="jet")
+    plt.imshow(output, vmin=0.2, vmax=0.6, cmap="jet")
     plt.show()
