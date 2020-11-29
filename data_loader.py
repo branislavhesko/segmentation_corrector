@@ -68,17 +68,25 @@ class SmartRandomDataSet(Dataset):
         return rand_row.item(), rand_col.item()
 
 
+class SmartRandomDataSetIdrid(SmartRandomDataSet):
+    CLASS_VALUE = 10
+    def process_mask(self, mask):
+        mask[mask <= self.CLASS_VALUE] = 1
+        mask[mask > self.CLASS_VALUE] = 0
+        return (cv2.distanceTransform(mask, cv2.DIST_L1, 0) == 1).astype(np.uint8)
+
+
 def get_data_loaders(config: Config):
     images = sorted(glob.glob(os.path.join(config.path[DataMode.train], "*." + config.extension_image)))
     masks = sorted(glob.glob(os.path.join(config.mask_path[DataMode.train], "*." + config.extension_mask)))
     images_val = sorted(glob.glob(os.path.join(config.path[DataMode.eval], "*." + config.extension_image)))
     masks_val = sorted(glob.glob(os.path.join(config.mask_path[DataMode.eval], "*." + config.extension_mask)))
     data_loader = DataLoader(
-        SmartRandomDataSet(config=config, img_files=images, mask_files=masks, 
+        SmartRandomDataSetIdrid(config=config, img_files=images, mask_files=masks, 
                            crop_size=config.crop_size, transforms=config.augmentation),
         batch_size=config.batch_size, num_workers=config.num_workers)
     data_loader_val = DataLoader(
-        SmartRandomDataSet(config=config, img_files=images_val, mask_files=masks_val, 
+        SmartRandomDataSetIdrid(config=config, img_files=images_val, mask_files=masks_val, 
                            crop_size=config.crop_size, transforms=config.val_augmentation),
         batch_size=1, num_workers=2)
     return {
@@ -89,9 +97,9 @@ def get_data_loaders(config: Config):
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
-    from config import Config
-    loader = get_data_loaders(Config())
+    from config import ConfigOpticDisc
+    loader = get_data_loaders(ConfigOpticDisc())
     for idx, data in enumerate(loader[DataMode.train]):
-        plt.imshow(data[1].squeeze().numpy())
+        plt.imshow(data[1].squeeze().numpy()[0, :, :])
         plt.show()
 

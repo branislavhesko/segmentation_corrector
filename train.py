@@ -7,7 +7,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from config import Config, DataMode
+from config import Config, ConfigOpticDisc, DataMode
 from data_loader import get_data_loaders
 from focal_loss import FocalLoss, TotalLoss
 from modeling.fovea_net import FoveaNet
@@ -17,7 +17,7 @@ class Trainer:
 
     def __init__(self, config: Config):
         self._config = config
-        self._model = FoveaNet(num_classes=1, stride=8).to(self._config.device)
+        self._model = FoveaNet(num_classes=1).to(self._config.device)
         self._loss = TotalLoss(config=config)
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
@@ -96,4 +96,4 @@ class Trainer:
 
 
 if __name__ == "__main__":
-    Trainer(Config()).train()
+    Trainer(ConfigOpticDisc()).train()

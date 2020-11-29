@@ -15,11 +15,11 @@ class FocalLoss(torch.nn.Module):
         loss_point = torch.mean((1 - output[
             labels == 1.]) ** self._alfa * torch.log(output[labels == 1.] + self._eps))
         loss_background = torch.mean((1 - labels) ** self._beta * output ** self._alfa * torch.log(1 - output + self._eps))
-        return -10 * (loss_point + loss_background)
+        return -1 * (loss_point + loss_background)
 
 
 class HardNegativeFocalLoss(torch.nn.Module):
-    kernel_size = 5
+    kernel_size = 15
     def __init__(self, alfa=2., beta=4., eps=1e-5) -> None:
         super().__init__()
         self._alfa = alfa
@@ -32,7 +32,7 @@ class HardNegativeFocalLoss(torch.nn.Module):
         labels_enlarged = labels_enlarged - labels
         loss_background = torch.mean((1 - labels[labels_enlarged == 1]) ** self._beta * output[
             labels_enlarged == 1] ** self._alfa * torch.log(1 - output[labels_enlarged == 1] + self._eps))
-        return -10 * loss_background
+        return -1 * loss_background
 
 
 class TotalLoss(torch.nn.Module):

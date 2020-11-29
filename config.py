@@ -55,3 +55,18 @@ class Config:
     checkpoint_path = "./ckpt"
     alfa = 2
     beta = 4
+
+
+class ConfigOpticDisc(Config):
+    device = "cpu"
+    EXPERIMENT_NAME = "OPTIC_DISC"
+    extension_image = "jpg"
+    extension_mask = "jpg"
+    path = {
+        DataMode.train: "/home/brani/code/data/train/imgs",
+        DataMode.eval: "/home/brani/code/data/validate/imgs"
+    }
+    mask_path = {
+        DataMode.train: "/home/brani/code/data/train/masks",
+        DataMode.eval: "/home/brani/code/data/validate/masks"
+    }
