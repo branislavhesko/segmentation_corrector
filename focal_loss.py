@@ -19,7 +19,7 @@ class FocalLoss(torch.nn.Module):
 
 
 class HardNegativeFocalLoss(torch.nn.Module):
-    kernel_size = 15
+    kernel_size = 11
     def __init__(self, alfa=2., beta=4., eps=1e-5) -> None:
         super().__init__()
         self._alfa = alfa

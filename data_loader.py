@@ -60,7 +60,8 @@ class SmartRandomDataSet(Dataset):
 
     def process_mask(self, mask):
         mask = (mask > 0).astype(np.uint8)
-        return (cv2.distanceTransform(mask, cv2.DIST_L1, 0) == 1).astype(np.uint8)
+        mask_dilated = cv2.dilate(mask, np.ones((5, 5)))
+        return mask_dilated - mask
 
     def _get_random_crop(self, image_size, crop_size):
         rand_row = torch.randint(low=0, high=image_size[0] - crop_size[0], size=[1])
