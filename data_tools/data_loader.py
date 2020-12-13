@@ -35,9 +35,9 @@ class SmartRandomDataSet(Dataset):
         if self._currently_opened.id != image_id:
             self.assign_currently_opened(image_id)
         rand_row, rand_col = self._get_random_crop(self._currently_opened.image.shape, self._crop_size)
-        image_crop, mask_crop = self._crop(rand_col, rand_row)
+        image_crop, border_crop, mask_crop = self._crop(rand_col, rand_row)
         data = (
-            *self._transforms(image_crop, mask_crop),
+            *self._transforms(image_crop, border_crop, mask_crop),
             (rand_row, rand_col, rand_row + self._crop_size[0], rand_col + self._crop_size[1]),
             self._img_files[self._currently_opened.id], self._mask_files[self._currently_opened.id]
         )
@@ -46,9 +46,11 @@ class SmartRandomDataSet(Dataset):
     def _crop(self, rand_col, rand_row):
         image_crop = np.copy(self._currently_opened.image[rand_row: rand_row + self._crop_size[0],
                                                           rand_col: rand_col + self._crop_size[1], :])
-        mask_crop = np.copy(self._currently_opened.mask[rand_row: rand_row + self._crop_size[0],
+        border_crop = np.copy(self._currently_opened.mask[0][rand_row: rand_row + self._crop_size[0],
                                                         rand_col: rand_col + self._crop_size[1]])
-        return image_crop, mask_crop
+        mask_crop = np.copy(self._currently_opened.mask[1][rand_row: rand_row + self._crop_size[0],
+                                                        rand_col: rand_col + self._crop_size[1]])
+        return image_crop, border_crop, mask_crop
 
     def assign_currently_opened(self, image_id):
         self._currently_opened = CurrentlyOpened(
@@ -61,7 +63,7 @@ class SmartRandomDataSet(Dataset):
     def process_mask(self, mask):
         mask = (mask > 0).astype(np.uint8)
         mask_dilated = cv2.dilate(mask, np.ones((5, 5)))
-        return mask_dilated - mask
+        return (mask_dilated - mask, mask)
 
     def _get_random_crop(self, image_size, crop_size):
         rand_row = torch.randint(low=0, high=image_size[0] - crop_size[0], size=[1])
@@ -75,7 +77,7 @@ class SmartRandomDataSetIdrid(SmartRandomDataSet):
         mask[mask <= self.CLASS_VALUE] = 1
         mask[mask > self.CLASS_VALUE] = 0
         mask_dilated = cv2.dilate(mask, np.ones((5, 5)))
-        return mask_dilated - mask
+        return mask_dilated - mask, mask
         # return (cv2.distanceTransform(mask, cv2.DIST_L1, 0) == 1).astype(np.uint8)
 
 

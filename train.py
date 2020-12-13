@@ -3,6 +3,7 @@ import os
 import cv2
 import numpy as np
 import torch
+from torch.nn import BCELoss
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -16,8 +17,9 @@ class Trainer:
 
     def __init__(self, config: Config):
         self._config = config
-        self._model = DeepLab(num_classes=1, output_stride=8, sync_bn=False).to(self._config.device)
+        self._model = DeepLab(num_classes=3, output_stride=8, sync_bn=False).to(self._config.device)
         self._loss = FocalLoss()
+        self._seg_loss = BCELoss()
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
@@ -30,21 +32,33 @@ class Trainer:
             self._model.train()
             for idx, data in enumerate(t):
                 self._optimizer.zero_grad()
-                imgs, masks, crop_info, opened_img, opened_mask = data
-                imgs, masks = imgs.to(self._config.device), masks.to(self._config.device)
-                masks = masks.unsqueeze(1)
+                imgs, borders, masks, crop_info, opened_img, opened_mask = data
+                imgs, borders, masks = imgs.to(self._config.device), borders.to(self._config.device), masks.to(self._config.device)
+                masks = self._get_mask(masks)
+                borders = borders.unsqueeze(1)
                 output = self._model(imgs)
-                loss = self._loss(masks, output)
-                t.set_description(f"LOSS: {loss.item()}")
+                border_output = output[:, :1, :, :]
+                seg_output = output[:, 1:, :, :]
+                borders_cat = borders.repeat(1, 2, 1, 1)
+                seg_loss = self._seg_loss(seg_output[borders_cat > 0], masks[borders_cat > 0])
+                loss = self._loss(borders, border_output) + seg_loss
+                t.set_description(f"LOSS: {seg_loss.item()}")
                 loss.backward()
                 self._optimizer.step()
 
                 if idx % self._config.frequency_visualization[DataMode.train] == 0:
-                    self._tensorboard_visualization(loss, epoch, idx, imgs, masks, output)
+                    self._tensorboard_visualization(loss, epoch, idx, imgs, borders, output)
 
                 if self._config.live_visualization:
-                    self._live_visualization(imgs, masks, output)
+                    self._live_visualization(imgs, borders, output)
             self._save()
+
+    @staticmethod
+    def _get_mask(masks):
+        masks_new = torch.zeros(masks.shape[0], 2, masks.shape[1], masks.shape[2], device=masks.device)
+        for idx in range(2):
+            masks_new[:, idx, :, :][masks == idx] = 1
+        return masks_new
 
     def validate(self, epoch):
         t = tqdm(self._loaders[DataMode.eval])
@@ -72,7 +86,10 @@ class Trainer:
         weights = glob(os.path.join(path, "*.pth"))
         if len(weights):
             state_dict = torch.load(weights[0])
-            self._model.load_state_dict(state_dict)
+            try:
+                self._model.load_state_dict(state_dict)
+            except RuntimeError as e:
+                print("ERROR while loading weights: {}".format(e))
 
     @staticmethod
     def check_and_mkdir(path):
@@ -82,16 +99,18 @@ class Trainer:
     @staticmethod
     def _live_visualization(imgs, masks, output):
         out = np.expand_dims((output[1, 0, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
-        # from matplotlib import pyplot as plt
-        # plt.imshow(out[:, :, 0])
-        # plt.show()
-        show = np.zeros((masks.shape[2], 3 * masks.shape[3], 3), dtype=np.float32)
+        out2 = np.expand_dims((output[1, 1, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
+        out3 = np.expand_dims((output[1, 2, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
+
+        show = np.zeros((masks.shape[2], 5 * masks.shape[3], 3), dtype=np.float32)
         show[:, :masks.shape[3]] = cv2.applyColorMap(
             (masks[1, 0, :, :] * 255).detach().cpu().numpy().astype(
                 np.uint8), cv2.COLORMAP_BONE)
         show[:, masks.shape[3]: 2 * masks.shape[3], :] = np.concatenate([out, out, out], axis=2)
-        show[:, 2 * masks.shape[3]:] = cv2.cvtColor(
+        show[:, 2 * masks.shape[3]:3 * masks.shape[3]] = cv2.cvtColor(
             imgs[1, ...].permute(1, 2, 0).cpu().detach().numpy(), cv2.COLOR_BGR2RGB)
+        show[:, 3 * masks.shape[3]:4 * masks.shape[3]] = np.concatenate([out2, out2, out2], axis=2)
+        show[:, 4 * masks.shape[3]:5 * masks.shape[3]] = np.concatenate([out3, out3, out3], axis=2)
         cv2.imshow("training", show)
         cv2.waitKey(10)
 

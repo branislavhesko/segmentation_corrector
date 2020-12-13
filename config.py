@@ -34,7 +34,7 @@ class Config:
     crop_size = (384, 384)
     device = "cuda"
     num_random_crops_per_image = 2
-    lr = 1e-4
+    lr = 1e-3
 
     augmentation = ComposeTransforms([
         RandomRotate(0.6),
@@ -60,6 +60,7 @@ class Config:
     checkpoint_path = "./ckpt"
     alfa = 2
     beta = 4
+    border_limit = 0.5
 
 
 class ConfigOpticDisc(Config):
