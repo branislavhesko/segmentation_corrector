@@ -3,7 +3,7 @@ import os
 import cv2
 import numpy as np
 import torch
-from torch.nn import BCELoss
+from torch.nn import BCELoss, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -17,9 +17,9 @@ class Trainer:
 
     def __init__(self, config: Config):
         self._config = config
-        self._model = DeepLab(num_classes=3, output_stride=8, sync_bn=False).to(self._config.device)
+        self._model = DeepLab(num_classes=9, output_stride=8, sync_bn=False).to(self._config.device)
         self._loss = FocalLoss()
-        self._seg_loss = BCELoss()
+        self._seg_loss = CrossEntropyLoss()
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
@@ -34,20 +34,18 @@ class Trainer:
                 self._optimizer.zero_grad()
                 imgs, borders, masks, crop_info, opened_img, opened_mask = data
                 imgs, borders, masks = imgs.to(self._config.device), borders.to(self._config.device), masks.to(self._config.device)
-                masks = self._get_mask(masks)
                 borders = borders.unsqueeze(1)
                 output = self._model(imgs)
                 border_output = output[:, :1, :, :]
                 seg_output = output[:, 1:, :, :]
-                borders_cat = borders.repeat(1, 2, 1, 1)
-                seg_loss = self._seg_loss(seg_output[borders_cat > 0], masks[borders_cat > 0])
+                seg_loss = self._seg_loss(seg_output, masks)
                 loss = self._loss(borders, border_output) + seg_loss
                 t.set_description(f"LOSS: {seg_loss.item()}")
                 loss.backward()
                 self._optimizer.step()
 
                 if idx % self._config.frequency_visualization[DataMode.train] == 0:
-                    self._tensorboard_visualization(loss, epoch, idx, imgs, borders, output)
+                    self._tensorboard_visualization(loss, epoch, idx, imgs, borders, output[:, :1, :, :])
 
                 if self._config.live_visualization:
                     self._live_visualization(imgs, borders, output)
@@ -98,8 +96,8 @@ class Trainer:
 
     @staticmethod
     def _live_visualization(imgs, masks, output):
-        out = np.expand_dims((output[1, 0, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
-        out2 = np.expand_dims((output[1, 1, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
+        out = np.expand_dims((output[1, 0, :, :].detach().cpu().numpy()).astype(np.float32), axis=2) > 0.7
+        out2 = np.expand_dims(np.argmax((output[1, 1:, :, :].detach().cpu().numpy()).astype(np.float32), axis=0), axis=2) / 7.
         out3 = np.expand_dims((output[1, 2, :, :].detach().cpu().numpy()).astype(np.float32), axis=2)
 
         show = np.zeros((masks.shape[2], 5 * masks.shape[3], 3), dtype=np.float32)

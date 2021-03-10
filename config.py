@@ -20,7 +20,7 @@ class Config:
     EXPERIMENT_NAME = "VESSELS"
     num_epochs = 10
     batch_size = 2
-    num_workers = 4
+    num_workers = 0
     extension_image = "tif"
     extension_mask = "png"
     path = {
