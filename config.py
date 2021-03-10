@@ -1,13 +1,15 @@
 from enum import auto, Enum
 
-from transforms import (
-    ComposeTransforms, Normalize, RandomHorizontalFlip, RandomRotate, 
-    RandomSquaredCrop, RandomVerticalFlip, Resize, ToTensor, Transpose)
+from data_tools.transforms import (
+    ComposeTransforms, RandomAdditiveNoise, RandomContrastBrightness,
+    RandomHorizontalFlip, RandomMultiplicativeNoise, RandomRotate,
+    RandomSquaredCrop, RandomVerticalFlip, ToTensor, Transpose)
 
 
 class DataProps:
     MEAN = [0.485, 0.456, 0.406]
     STD = [0.229, 0.224, 0.225]
+
 
 class DataMode(Enum):
     train = auto()
@@ -39,6 +41,9 @@ class Config:
         RandomSquaredCrop(0.85),
         RandomHorizontalFlip(),
         RandomVerticalFlip(),
+        RandomContrastBrightness(),
+        RandomMultiplicativeNoise(),
+        RandomAdditiveNoise(),
         Transpose(),
         ToTensor()
     ])

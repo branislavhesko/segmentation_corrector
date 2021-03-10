@@ -1,6 +1,5 @@
 from glob import glob
 import os
-from os import stat
 import cv2
 import numpy as np
 import torch
@@ -8,10 +7,9 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from config import Config, ConfigOpticDisc, DataMode
-from data_loader import get_data_loaders
-from focal_loss import FocalLoss, TotalLoss
+from data_tools.data_loader import get_data_loaders
+from modeling.focal_loss import FocalLoss
 from modeling.deeplab import DeepLab
-from modeling.fovea_net import FoveaNet
 
 
 class Trainer:
@@ -23,6 +21,7 @@ class Trainer:
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
+        self._scheduler = torch.optim.lr_scheduler.ExponentialLR(self._optimizer, gamma=0.97)
         self._load()
 
     def train(self):
@@ -66,7 +65,7 @@ class Trainer:
     def _save(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
         self.check_and_mkdir(path)
-        torch.save(self._model.state_dict(), os.path.join(path, "w.pth"))
+        torch.save(self._model.state_dict(), os.path.join(path, "weight.pth"))
 
     def _load(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
@@ -95,9 +94,6 @@ class Trainer:
             imgs[1, ...].permute(1, 2, 0).cpu().detach().numpy(), cv2.COLOR_BGR2RGB)
         cv2.imshow("training", show)
         cv2.waitKey(10)
-
-    def validate(self):
-        pass
 
 
 if __name__ == "__main__":

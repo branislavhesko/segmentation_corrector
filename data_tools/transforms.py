@@ -1,3 +1,4 @@
+import albumentations
 import numpy as np
 import cv2
 from skimage.transform import resize
@@ -57,6 +58,40 @@ class RandomSquaredCrop:
         mask_ = cv2.resize(mask[crop_x_origin: crop_x_origin + size,
                            crop_y_origin: crop_y_origin + size], (w, h), interpolation=cv2.INTER_NEAREST)
         return image[0], mask_
+
+
+class RandomContrastBrightness:
+
+    def __init__(self, probability=0.5):
+        self._probability = probability
+        self._transform = albumentations.RandomBrightnessContrast()
+
+    def __call__(self, img, mask):
+        if np.random.rand(1) > self._probability:
+            return img, mask
+        return self._transform(image=img)["image"], mask
+
+
+class RandomAdditiveNoise:
+    def __init__(self, probability=0.5):
+        self._probability = probability
+
+    def __call__(self, img, mask):
+        if np.random.rand(1) > self._probability:
+            return img, mask
+        sigma = 0.01 * 255 if img.dtype == np.uint8 else 0.01
+        return img + np.random.randn(*img.shape) * sigma
+
+
+class RandomMultiplicativeNoise:
+    def __init__(self, probability=0.5):
+        self._probability = probability
+
+    def __call__(self, img, mask):
+        if np.random.rand(1) > self._probability:
+            return img, mask
+        sigma = 0.01 * 255 if img.dtype == np.uint8 else 0.01
+        return img * (1 + np.random.randn(*img.shape) * sigma)
 
 
 class RandomRotate:
