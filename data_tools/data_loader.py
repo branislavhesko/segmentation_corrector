@@ -8,7 +8,7 @@ from scipy.ndimage.morphology import distance_transform_edt
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from config import Config, DataMode
+from configuration.config import Config, DataMode
 
 
 CurrentlyOpened = namedtuple("CurrentlyOpened", ["image", "mask", "id"])

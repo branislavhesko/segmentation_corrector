@@ -7,7 +7,7 @@ from torch.nn import BCELoss, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from config import Config, ConfigOpticDisc, DataMode
+from configuration.config import Config, ConfigOpticDisc, DataMode
 from data_tools.data_loader import get_data_loaders
 from modeling.focal_loss import FocalLoss
 from modeling.deeplab import DeepLab
@@ -18,8 +18,8 @@ class Trainer:
     def __init__(self, config: Config):
         self._config = config
         self._model = DeepLab(num_classes=9, output_stride=8, sync_bn=False).to(self._config.device)
-        self._loss = FocalLoss()
-        self._seg_loss = CrossEntropyLoss()
+        self._border_loss = FocalLoss()
+        self._direction_loss = CrossEntropyLoss()
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
@@ -37,9 +37,9 @@ class Trainer:
                 borders = borders.unsqueeze(1)
                 output = self._model(imgs)
                 border_output = output[:, :1, :, :]
-                seg_output = output[:, 1:, :, :]
-                seg_loss = self._seg_loss(seg_output, masks)
-                loss = self._loss(borders, border_output) + seg_loss
+                direction_output = output[:, 1:, :, :]
+                seg_loss = self._direction_loss(direction_output, masks)
+                loss = self._border_loss(borders, border_output) + seg_loss
                 t.set_description(f"LOSS: {seg_loss.item()}")
                 loss.backward()
                 self._optimizer.step()
@@ -65,7 +65,7 @@ class Trainer:
             imgs, masks, _, _, _ = data
             imgs, masks = imgs.to(self._config.device), masks.to(self._config.device)
             output = self._model(imgs)
-            loss = self._loss(masks, output)
+            loss = self._border_loss(masks, output)
 
     def _tensorboard_visualization(self, loss, epoch, idx, imgs, masks, output):
         self._writer.add_scalar("Loss/training", loss.item(), 
@@ -77,7 +77,7 @@ class Trainer:
     def _save(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
         self.check_and_mkdir(path)
-        torch.save(self._model.state_dict(), os.path.join(path, "weight.pth"))
+        torch.save(self._model.state_dict(), os.path.join(path, "weights.pth"))
 
     def _load(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
