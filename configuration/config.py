@@ -4,6 +4,7 @@ from data_tools.transforms import (
     ComposeTransforms, RandomAdditiveNoise, RandomContrastBrightness,
     RandomHorizontalFlip, RandomMultiplicativeNoise, RandomRotate,
     RandomSquaredCrop, RandomVerticalFlip, ToTensor, Transpose)
+from modeling.api import DeepLab
 
 
 class DataProps:
@@ -76,3 +77,9 @@ class ConfigOpticDisc(Config):
         DataMode.train: "./data/refugee/train/masks",
         DataMode.eval: "./data/refugee/validate/masks"
     }
+
+
+class SegmentationConfig(ConfigOpticDisc):
+    model = DeepLab
+    num_classes = 2
+    output_stride = 8
