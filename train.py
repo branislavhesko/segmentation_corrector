@@ -7,7 +7,8 @@ from torch.nn import BCELoss, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from configuration.config import Config, ConfigOpticDisc, DataMode
+from configuration.base_config import BaseConfig, DataMode
+from configuration.config_optic_disc import BaseConfigOpticDisc
 from data_tools.data_loader import get_data_loaders
 from modeling.focal_loss import FocalLoss
 from modeling.deeplab import DeepLab
@@ -15,7 +16,7 @@ from modeling.deeplab import DeepLab
 
 class Trainer:
 
-    def __init__(self, config: Config):
+    def __init__(self, config: BaseConfig):
         self._config = config
         self._model = DeepLab(num_classes=9, output_stride=8, sync_bn=False).to(self._config.device)
         self._border_loss = FocalLoss()
@@ -114,4 +115,4 @@ class Trainer:
 
 
 if __name__ == "__main__":
-    Trainer(ConfigOpticDisc()).train()
+    Trainer(BaseConfigOpticDisc()).train()

@@ -1,6 +1,7 @@
 import torch
 
-from configuration.config import Config, ConfigOpticDisc
+from configuration.base_config import BaseConfig
+from configuration.config_optic_disc import BaseConfigOpticDisc
 
 
 def iou(gt, pred):

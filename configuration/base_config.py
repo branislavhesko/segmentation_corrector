@@ -17,7 +17,7 @@ class DataMode(Enum):
     eval = auto()
 
 
-class Config:
+class BaseConfig:
     EXPERIMENT_NAME = "VESSELS"
     num_epochs = 10
     batch_size = 2
@@ -64,19 +64,6 @@ class Config:
     border_limit = 0.5
 
 
-class ConfigOpticDisc(Config):
-    device = "cuda"
-    EXPERIMENT_NAME = "OPTIC_DISC"
-    extension_image = "jpg"
-    extension_mask = "jpg"
-    path = {
-        DataMode.train: "./data/refugee/train/imgs",
-        DataMode.eval: "./data/refugee/validate/imgs"
-    }
-    mask_path = {
-        DataMode.train: "./data/refugee/train/masks",
-        DataMode.eval: "./data/refugee/validate/masks"
-    }
 
 
 class SegmentationConfig(ConfigOpticDisc):

@@ -8,7 +8,7 @@ from scipy.ndimage.morphology import distance_transform_edt
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from configuration.config import Config, DataMode
+from configuration.base_config import BaseConfig, DataMode
 
 
 CurrentlyOpened = namedtuple("CurrentlyOpened", ["image", "mask", "id"])
@@ -107,7 +107,7 @@ class SmartRandomDataSetIdrid(SmartRandomDataSet):
         # return (cv2.distanceTransform(mask, cv2.DIST_L1, 0) == 1).astype(np.uint8)
 
 
-def get_data_loaders(config: Config):
+def get_data_loaders(config: BaseConfig):
     images = sorted(glob.glob(os.path.join(config.path[DataMode.train], "*." + config.extension_image)))
     masks = sorted(glob.glob(os.path.join(config.mask_path[DataMode.train], "*." + config.extension_mask)))
     images_val = sorted(glob.glob(os.path.join(config.path[DataMode.eval], "*." + config.extension_image)))
