@@ -2,7 +2,7 @@ import cv2
 import os
 import torch
 
-from config import Config
+from configuration.config import Config
 from modeling.fovea_net import FoveaNet
 
 

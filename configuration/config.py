@@ -4,6 +4,7 @@ from data_tools.transforms import (
     ComposeTransforms, RandomAdditiveNoise, RandomContrastBrightness,
     RandomHorizontalFlip, RandomMultiplicativeNoise, RandomRotate,
     RandomSquaredCrop, RandomVerticalFlip, ToTensor, Transpose)
+from modeling.api import DeepLab
 
 
 class DataProps:
@@ -20,7 +21,7 @@ class Config:
     EXPERIMENT_NAME = "VESSELS"
     num_epochs = 10
     batch_size = 2
-    num_workers = 4
+    num_workers = 0
     extension_image = "tif"
     extension_mask = "png"
     path = {
@@ -34,7 +35,7 @@ class Config:
     crop_size = (384, 384)
     device = "cuda"
     num_random_crops_per_image = 2
-    lr = 1e-4
+    lr = 1e-3
 
     augmentation = ComposeTransforms([
         RandomRotate(0.6),
@@ -60,6 +61,7 @@ class Config:
     checkpoint_path = "./ckpt"
     alfa = 2
     beta = 4
+    border_limit = 0.5
 
 
 class ConfigOpticDisc(Config):
@@ -75,3 +77,9 @@ class ConfigOpticDisc(Config):
         DataMode.train: "./data/refugee/train/masks",
         DataMode.eval: "./data/refugee/validate/masks"
     }
+
+
+class SegmentationConfig(ConfigOpticDisc):
+    model = DeepLab
+    num_classes = 2
+    output_stride = 8

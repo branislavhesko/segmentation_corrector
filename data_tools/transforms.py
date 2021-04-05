@@ -11,12 +11,12 @@ class Normalize:
         self._means = means
         self._stds = stds
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         assert img.shape[2] == len(self._means)
         img[:, :, 0] = (img[:, :, 0] - self._means[0]) / self._stds[0]
         img[:, :, 1] = (img[:, :, 1] - self._means[1]) / self._stds[1]
         img[:, :, 2] = (img[:, :, 2] - self._means[2]) / self._stds[2]
-        return img, mask
+        return img, border, mask
 
 
 class RandomHorizontalFlip:
@@ -24,11 +24,11 @@ class RandomHorizontalFlip:
     def __init__(self, p=0.5):
         self._p = p
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if self._p < np.random.rand():
-            return img[:, ::-1, :], mask[:, ::-1]
+            return img[:, ::-1, :], border[:, ::-1], mask[:, ::-1]
         else:
-            return img, mask
+            return img, border, mask
 
 
 class RandomVerticalFlip:
@@ -36,11 +36,11 @@ class RandomVerticalFlip:
     def __init__(self, p=0.5):
         self._p = p
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if self._p < np.random.rand():
-            return img[::-1, :, :], mask[::-1, :]
+            return img[::-1, :, :], border[::-1, :], mask[::-1, :]
         else:
-            return img, mask
+            return img, border, mask
 
 
 class RandomSquaredCrop:
@@ -48,7 +48,7 @@ class RandomSquaredCrop:
     def __init__(self, minimal_relative_crop_size=0.5):
         self._minimal_relative_crop_size = minimal_relative_crop_size
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         h, w = mask.shape
         size = np.random.randint(int(self._minimal_relative_crop_size * h), h)
         crop_x_origin = np.random.randint(0, h - size)
@@ -57,7 +57,9 @@ class RandomSquaredCrop:
         image = cv2.resize(img[crop_x_origin: crop_x_origin + size, crop_y_origin: crop_y_origin + size, :], (w, h)),
         mask_ = cv2.resize(mask[crop_x_origin: crop_x_origin + size,
                            crop_y_origin: crop_y_origin + size], (w, h), interpolation=cv2.INTER_NEAREST)
-        return image[0], mask_
+        border_ = cv2.resize(border[crop_x_origin: crop_x_origin + size,
+                           crop_y_origin: crop_y_origin + size], (w, h), interpolation=cv2.INTER_NEAREST)
+        return image[0], border_, mask_
 
 
 class RandomContrastBrightness:
@@ -99,31 +101,31 @@ class RandomRotate:
         self._p = p
         self._std_dev = std_dev
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if np.random.rand() > self._p:
-            return img, mask
+            return img, border, mask
         else:
             # angle = np.random.randint(0, 180)
             angle = np.random.normal(0, self._std_dev / 3.)  # normal distribution
-            return rotate(img, angle, reshape=False), rotate(mask, angle, reshape=False, order=0)
+            return rotate(img, angle, reshape=False), rotate(border, angle, reshape=False, order=0), rotate(mask, angle, reshape=False, order=0)
             
 
 class Resize:
     def __init__(self, size):
         self._size = size
 
-    def __call__(self, img, mask):
-        return resize(img, self._size), resize(mask, self._size)
+    def __call__(self, img, border, mask):
+        return resize(img, self._size), resize(border, self._size), resize(mask, self._size)
 
 
 class ComposeTransforms:
     def __init__(self, transforms):
         self._transforms = transforms
     
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         for transform in self._transforms:
-            img, mask = transform(img, mask)
-        return img, mask
+            img, border, mask = transform(img, border, mask)
+        return img, border, mask
 
     def __str__(self):
         return "|".join(map(lambda x: x.__class__.__name__, self._transforms))
@@ -133,25 +135,25 @@ class Clahe:
     def __init__(self):
         self._clage = None
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         self._clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
         print(img.dtype)
-        return self._clahe.apply(img), mask
+        return self._clahe.apply(img), border, mask
         
 
 class ToTensor:
 
-    def __call__(self, img, mask):
-        return torch.from_numpy(img.astype(np.float32)), torch.from_numpy(mask.astype(np.int64))
+    def __call__(self, img, border, mask):
+        return torch.from_numpy(img.astype(np.float32)), torch.from_numpy(border.astype(np.int64)), torch.from_numpy(mask.astype(np.int64))
 
 
 class Transpose:
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if len(img.shape) == 2:
             img = img[np.newaxis, :, :]
             return img, mask
-        return np.transpose(img, [2, 0, 1]), mask
+        return np.transpose(img, [2, 0, 1]), border, mask
         
 
 if __name__ == "__main__":
