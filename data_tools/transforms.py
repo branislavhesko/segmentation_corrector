@@ -68,32 +68,32 @@ class RandomContrastBrightness:
         self._probability = probability
         self._transform = albumentations.RandomBrightnessContrast()
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if np.random.rand(1) > self._probability:
-            return img, mask
-        return self._transform(image=img)["image"], mask
+            return img, border, mask
+        return self._transform(image=img)["image"], border, mask
 
 
 class RandomAdditiveNoise:
     def __init__(self, probability=0.5):
         self._probability = probability
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if np.random.rand(1) > self._probability:
-            return img, mask
+            return img, border, mask
         sigma = 0.01 * 255 if img.dtype == np.uint8 else 0.01
-        return img + np.random.randn(*img.shape) * sigma
+        return img + np.random.randn(*img.shape) * sigma, border, mask
 
 
 class RandomMultiplicativeNoise:
     def __init__(self, probability=0.5):
         self._probability = probability
 
-    def __call__(self, img, mask):
+    def __call__(self, img, border, mask):
         if np.random.rand(1) > self._probability:
-            return img, mask
+            return img, border, mask
         sigma = 0.01 * 255 if img.dtype == np.uint8 else 0.01
-        return img * (1 + np.random.randn(*img.shape) * sigma)
+        return img * (1 + np.random.randn(*img.shape) * sigma), border, mask
 
 
 class RandomRotate:
@@ -152,7 +152,7 @@ class Transpose:
     def __call__(self, img, border, mask):
         if len(img.shape) == 2:
             img = img[np.newaxis, :, :]
-            return img, mask
+            return img, border, mask
         return np.transpose(img, [2, 0, 1]), border, mask
         
 

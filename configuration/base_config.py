@@ -1,3 +1,4 @@
+from collections import namedtuple
 from enum import auto, Enum
 
 from data_tools.transforms import (
@@ -5,6 +6,9 @@ from data_tools.transforms import (
     RandomHorizontalFlip, RandomMultiplicativeNoise, RandomRotate,
     RandomSquaredCrop, RandomVerticalFlip, ToTensor, Transpose)
 from modeling.api import DeepLab
+
+
+CorrectorEntries = namedtuple("CorrectorEntries", ["border", "direction"])
 
 
 class DataProps:
@@ -52,7 +56,7 @@ class BaseConfig:
         Transpose(),
         ToTensor()
     ])
-    live_visualization = True
+    live_visualization = False
     frequency_visualization = {
         DataMode.train: 100,
         DataMode.eval: 50
@@ -62,11 +66,3 @@ class BaseConfig:
     alfa = 2
     beta = 4
     border_limit = 0.5
-
-
-
-
-class SegmentationConfig(ConfigOpticDisc):
-    model = DeepLab
-    num_classes = 2
-    output_stride = 8

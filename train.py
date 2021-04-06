@@ -44,9 +44,14 @@ class Trainer:
                 t.set_description(f"LOSS: {seg_loss.item()}")
                 loss.backward()
                 self._optimizer.step()
+                self._writer.add_scalar("Loss/training", loss.item(), 
+                                        global_step=epoch * len(self._loaders[DataMode.train]) + idx)
 
                 if idx % self._config.frequency_visualization[DataMode.train] == 0:
-                    self._tensorboard_visualization(loss, epoch, idx, imgs, borders, output[:, :1, :, :])
+                    self._tensorboard_visualization(
+                        loss=loss, epoch=epoch, idx=idx, imgs=imgs, 
+                        border_gt=borders, border=border_output,
+                        direction_gt=masks, direction=direction_output)
 
                 if self._config.live_visualization:
                     self._live_visualization(imgs, borders, output)
@@ -68,12 +73,12 @@ class Trainer:
             output = self._model(imgs)
             loss = self._border_loss(masks, output)
 
-    def _tensorboard_visualization(self, loss, epoch, idx, imgs, masks, output):
-        self._writer.add_scalar("Loss/training", loss.item(), 
-                                global_step=epoch * len(self._loaders[DataMode.train]) + idx)
-        self._writer.add_images("Images/training", imgs, idx)
-        self._writer.add_images("Masks/training", masks, idx)
-        self._writer.add_images("Outputs/training", output, idx)
+    def _tensorboard_visualization(self, loss, epoch, idx, imgs, border_gt, direction_gt, border, direction):
+        self._writer.add_images(f"Images{idx}/training", imgs, epoch)
+        self._writer.add_images(f"Border{idx}/training", border, epoch)
+        self._writer.add_images(f"BorderGT{idx}/training", border_gt, epoch)
+        self._writer.add_images(f"DirectionGT{idx}/training", direction_gt.unsqueeze(1), epoch)
+        self._writer.add_images(f"Direction{idx}/training", direction.argmax(1).unsqueeze(1), epoch)
 
     def _save(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
