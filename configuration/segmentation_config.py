@@ -7,7 +7,7 @@ class SegmentationConfig(base_config.BaseConfig):
     num_classes = 2
     output_stride = 8
     device = "cuda"
-    EXPERIMENT_NAME = "OPTIC_DISC"
+    EXPERIMENT_NAME = "SEGMENTATION_OPTIC_DISC"
     extension_image = "jpg"
     extension_mask = "jpg"
     path = {
