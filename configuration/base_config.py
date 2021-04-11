@@ -5,7 +5,6 @@ from data_tools.transforms import (
     ComposeTransforms, RandomAdditiveNoise, RandomContrastBrightness,
     RandomHorizontalFlip, RandomMultiplicativeNoise, RandomRotate,
     RandomSquaredCrop, RandomVerticalFlip, ToTensor, Transpose)
-from modeling.api import DeepLab
 
 
 CorrectorEntries = namedtuple("CorrectorEntries", ["border", "direction"])
@@ -61,6 +60,8 @@ class BaseConfig:
         DataMode.train: 100,
         DataMode.eval: 50
     }
+
+    validation_frequency = 5
 
     checkpoint_path = "./ckpt"
     alfa = 2

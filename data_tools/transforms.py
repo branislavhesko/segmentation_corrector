@@ -133,7 +133,7 @@ class ComposeTransforms:
 
 class Clahe:
     def __init__(self):
-        self._clage = None
+        self._clahe = None
 
     def __call__(self, img, border, mask):
         self._clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))

@@ -9,7 +9,7 @@ def iou(gt, pred):
 
 
 def dice(gt, pred):
-    return 2 * torch.sum(gt & pred) / (torch.sum(gt) + torch.sum(pred))
+    return 2 * torch.sum(gt & pred) / (torch.sum(gt) + torch.sum(pred))
 
 
 
