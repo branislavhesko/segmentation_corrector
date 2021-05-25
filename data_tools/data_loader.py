@@ -54,7 +54,7 @@ class SmartRandomDataSet(Dataset):
         image, border, mask = self._transforms(image_crop, border_crop, mask_crop)
         mask = self.transform_mask(mask)
         data = (
-            image, border, mask,
+            image, border.long(), mask,
             (rand_row, rand_col, rand_row + self._crop_size[0], rand_col + self._crop_size[1]),
             self._img_files[self._currently_opened.id], self._mask_files[self._currently_opened.id]
         )

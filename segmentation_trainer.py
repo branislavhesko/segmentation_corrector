@@ -71,7 +71,7 @@ class SegmentationTrainer:
             progress_bar.set_description("VALIDATION - Epoch: {}, inference time: {:.2f} ms, iou: {:.2f}, dice: {:.2f} "
                                          "loss: {:.2f}".format(epoch, (time() - start) * 1000,
                                                                iou_value, dice_value, loss.item()))
-            self._write_scalar_to_tensorboard(dice_value, iou_value, epoch, index, loss)
+            self._write_scalar_to_tensorboard(dice_value, iou_value, epoch, index, loss, DataMode.eval)
 
     @staticmethod
     def _get_metrics(masks, model_output):

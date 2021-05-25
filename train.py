@@ -18,14 +18,14 @@ class Trainer:
 
     def __init__(self, config: BaseConfig):
         self._config = config
-        self._model = DeepLab(num_classes=9, output_stride=8, sync_bn=False).to(self._config.device)
-        self._border_loss = FocalLoss()
+        self._model = DeepLab(num_classes=10, output_stride=8, sync_bn=False).to(self._config.device)
+        self._border_loss = CrossEntropyLoss(weight=torch.tensor([0.1, 0.9]).to(self._config.device))
         self._direction_loss = CrossEntropyLoss()
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
-        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr)
+        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr, weight_decay=1e-4)
         self._scheduler = torch.optim.lr_scheduler.ExponentialLR(self._optimizer, gamma=0.97)
-        self._load()
+        # self._load()
 
     def train(self):
         for epoch in range(self._config.num_epochs):
@@ -35,12 +35,12 @@ class Trainer:
                 self._optimizer.zero_grad()
                 imgs, borders, masks, crop_info, opened_img, opened_mask = data
                 imgs, borders, masks = imgs.to(self._config.device), borders.to(self._config.device), masks.to(self._config.device)
-                borders = borders.unsqueeze(1)
+                # borders = borders.unsqueeze(1)
                 output = self._model(imgs)
-                border_output = output[:, :1, :, :]
-                direction_output = output[:, 1:, :, :]
+                border_output = output[:, :2, :, :]
+                direction_output = output[:, 2:, :, :]
                 seg_loss = self._direction_loss(direction_output, masks)
-                loss = self._border_loss(borders, border_output) + seg_loss
+                loss = self._border_loss(border_output, borders) + seg_loss
                 t.set_description(f"LOSS: {seg_loss.item()}")
                 loss.backward()
                 self._optimizer.step()
@@ -50,12 +50,12 @@ class Trainer:
                 if idx % self._config.frequency_visualization[DataMode.train] == 0:
                     self._tensorboard_visualization(
                         loss=loss, epoch=epoch, idx=idx, imgs=imgs, 
-                        border_gt=borders, border=border_output,
+                        border_gt=borders.unsqueeze(1), border=border_output.argmax(1).unsqueeze(1),
                         direction_gt=masks, direction=direction_output)
 
                 if self._config.live_visualization:
                     self._live_visualization(imgs, borders, output)
-            self._save()
+        self._save()
 
     @staticmethod
     def _get_mask(masks):
@@ -83,7 +83,7 @@ class Trainer:
     def _save(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)
         self.check_and_mkdir(path)
-        torch.save(self._model.state_dict(), os.path.join(path, "weights.pth"))
+        torch.save(self._model.state_dict(), os.path.join(path, "corrector.pth"))
 
     def _load(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)

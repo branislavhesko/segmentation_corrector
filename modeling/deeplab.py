@@ -6,6 +6,15 @@ from modeling.aspp import build_aspp
 from modeling.decoder import build_decoder
 from modeling.backbone import build_backbone
 
+
+def transform_batchnorm_to_groupnorm(model, block):
+    for name, p in block.named_children():
+        if isinstance(p, torch.nn.Module):
+            transform_batchnorm_to_groupnorm(model, p)
+        if isinstance(p, nn.BatchNorm2d) or isinstance(p, SynchronizedBatchNorm2d):
+            setattr(block, name, nn.GroupNorm(8, p.num_features))
+
+
 class DeepLab(nn.Module):
     def __init__(self, backbone='resnet', output_stride=16, num_classes=21,
                  sync_bn=True, freeze_bn=False):
@@ -23,6 +32,7 @@ class DeepLab(nn.Module):
         self.decoder = build_decoder(num_classes, backbone, BatchNorm)
 
         self.freeze_bn = freeze_bn
+        transform_batchnorm_to_groupnorm(self, self)
 
     def forward(self, input):
         x, low_level_feat = self.backbone(input)

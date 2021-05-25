@@ -22,7 +22,7 @@ class DataMode(Enum):
 
 class BaseConfig:
     EXPERIMENT_NAME = "VESSELS"
-    num_epochs = 10
+    num_epochs = 31
     batch_size = 2
     num_workers = 0
     extension_image = "tif"
