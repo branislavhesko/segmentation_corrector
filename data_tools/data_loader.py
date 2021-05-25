@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, DistributedSampler
 
 from configuration.base_config import BaseConfig, DataMode
 
@@ -112,25 +112,22 @@ def get_data_loaders(config: BaseConfig):
     masks = sorted(glob.glob(os.path.join(config.mask_path[DataMode.train], "*." + config.extension_mask)))
     images_val = sorted(glob.glob(os.path.join(config.path[DataMode.eval], "*." + config.extension_image)))
     masks_val = sorted(glob.glob(os.path.join(config.mask_path[DataMode.eval], "*." + config.extension_mask)))
-    data_loader = DataLoader(
-        SmartRandomDataSetIdrid(config=config, img_files=images, mask_files=masks, 
-                           crop_size=config.crop_size, transforms=config.augmentation),
-        batch_size=config.batch_size, num_workers=config.num_workers)
-    data_loader_val = DataLoader(
-        SmartRandomDataSetIdrid(config=config, img_files=images_val, mask_files=masks_val, 
-                           crop_size=config.crop_size, transforms=config.val_augmentation),
-        batch_size=1, num_workers=2)
+
+    if config.parallel:
+        dataset_train = DistributedSampler(SmartRandomDataSetIdrid(config=config, img_files=images, mask_files=masks,
+                           crop_size=config.crop_size, transforms=config.augmentation), num_replicas=config.world_size)
+        dataset_val = DistributedSampler(SmartRandomDataSetIdrid(config=config, img_files=images_val, mask_files=masks_val,
+                           crop_size=config.crop_size, transforms=config.val_augmentation))
+
+    else:
+        dataset_train = SmartRandomDataSetIdrid(config=config, img_files=images, mask_files=masks,
+                           crop_size=config.crop_size, transforms=config.augmentation)
+        dataset_val = SmartRandomDataSetIdrid(config=config, img_files=images_val, mask_files=masks_val,
+                           crop_size=config.crop_size, transforms=config.val_augmentation)
+
+    data_loader = DataLoader(dataset_train, batch_size=config.batch_size, num_workers=config.num_workers)
+    data_loader_val = DataLoader(dataset_val, batch_size=1, num_workers=2)
     return {
         DataMode.eval: data_loader_val,
         DataMode.train: data_loader
     }
-
-
-if __name__ == "__main__":
-    from matplotlib import pyplot as plt
-    from config import ConfigOpticDisc
-    loader = get_data_loaders(ConfigOpticDisc())
-    for idx, data in enumerate(loader[DataMode.train]):
-        plt.imshow(data[1].squeeze().numpy()[0, :, :])
-        plt.show()
-

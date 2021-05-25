@@ -4,11 +4,13 @@ import cv2
 import numpy as np
 import torch
 from torch.nn import BCELoss, CrossEntropyLoss
+from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.tensorboard import SummaryWriter
+
 from tqdm import tqdm
 
 from configuration.base_config import BaseConfig, DataMode
-from configuration.config_optic_disc import BaseConfigOpticDisc
+from configuration.optic_disc import BaseConfigOpticDisc
 from data_tools.data_loader import get_data_loaders
 from modeling.focal_loss import FocalLoss
 from modeling.deeplab import DeepLab
@@ -25,6 +27,9 @@ class Trainer:
         self._writer = SummaryWriter()
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr, weight_decay=1e-4)
         self._scheduler = torch.optim.lr_scheduler.ExponentialLR(self._optimizer, gamma=0.97)
+
+        if self._config.parallel:
+            self._model = DistributedDataParallel(self._model, device_ids=[self._config.device, ])
         # self._load()
 
     def train(self):

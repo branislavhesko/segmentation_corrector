@@ -22,6 +22,9 @@ class DataMode(Enum):
 
 class BaseConfig:
     EXPERIMENT_NAME = "VESSELS"
+
+    parallel = False
+    world_size = 1
     num_epochs = 31
     batch_size = 2
     num_workers = 0
