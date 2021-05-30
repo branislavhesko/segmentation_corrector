@@ -26,7 +26,7 @@ class BaseConfig:
     parallel = False
     world_size = 1
     num_epochs = 31
-    batch_size = 2
+    batch_size = 4
     num_workers = 0
     extension_image = "tif"
     extension_mask = "png"
@@ -60,8 +60,8 @@ class BaseConfig:
     ])
     live_visualization = False
     frequency_visualization = {
-        DataMode.train: 100,
-        DataMode.eval: 50
+        DataMode.train: 20,
+        DataMode.eval: 20
     }
 
     validation_frequency = 5

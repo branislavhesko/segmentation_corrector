@@ -24,7 +24,7 @@ def _get_config(args, gpu):
     config = BaseConfigOpticDisc()
     config.device = gpu
     config.parallel = True
-    config.world_size = args.worls_size
+    config.world_size = args.world_size
     return config
 
 

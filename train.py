@@ -12,7 +12,7 @@ from tqdm import tqdm
 from configuration.base_config import BaseConfig, DataMode
 from configuration.optic_disc import BaseConfigOpticDisc
 from data_tools.data_loader import get_data_loaders
-from modeling.focal_loss import FocalLoss
+from modeling.focal_loss import FocalLoss, TotalLoss
 from modeling.deeplab import DeepLab
 
 
@@ -20,12 +20,12 @@ class Trainer:
 
     def __init__(self, config: BaseConfig):
         self._config = config
-        self._model = DeepLab(num_classes=10, output_stride=8, sync_bn=False).to(self._config.device)
-        self._border_loss = CrossEntropyLoss(weight=torch.tensor([0.1, 0.9]).to(self._config.device))
+        self._model = DeepLab(num_classes=9, output_stride=8, sync_bn=False).to(self._config.device)
+        self._border_loss = TotalLoss(self._config)
         self._direction_loss = CrossEntropyLoss()
         self._loaders = get_data_loaders(config)
         self._writer = SummaryWriter()
-        self._optimizer = torch.optim.Adam(self._model.parameters(), lr=self._config.lr, weight_decay=1e-4)
+        self._optimizer = torch.optim.SGD(self._model.parameters(), lr=self._config.lr, weight_decay=1e-4, nesterov=True, momentum=0.9)
         self._scheduler = torch.optim.lr_scheduler.ExponentialLR(self._optimizer, gamma=0.97)
 
         if self._config.parallel:
@@ -42,8 +42,8 @@ class Trainer:
                 imgs, borders, masks = imgs.to(self._config.device), borders.to(self._config.device), masks.to(self._config.device)
                 # borders = borders.unsqueeze(1)
                 output = self._model(imgs)
-                border_output = output[:, :2, :, :]
-                direction_output = output[:, 2:, :, :]
+                border_output = output[:, :1, :, :].squeeze()
+                direction_output = output[:, 1:, :, :]
                 seg_loss = self._direction_loss(direction_output, masks)
                 loss = self._border_loss(border_output, borders) + seg_loss
                 t.set_description(f"LOSS: {seg_loss.item()}")
@@ -55,7 +55,7 @@ class Trainer:
                 if idx % self._config.frequency_visualization[DataMode.train] == 0:
                     self._tensorboard_visualization(
                         loss=loss, epoch=epoch, idx=idx, imgs=imgs, 
-                        border_gt=borders.unsqueeze(1), border=border_output.argmax(1).unsqueeze(1),
+                        border_gt=borders.unsqueeze(1), border=border_output.unsqueeze(1),
                         direction_gt=masks, direction=direction_output)
 
                 if self._config.live_visualization:
