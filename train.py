@@ -82,8 +82,8 @@ class Trainer:
         self._writer.add_images(f"Images{idx}/training", imgs, epoch)
         self._writer.add_images(f"Border{idx}/training", border, epoch)
         self._writer.add_images(f"BorderGT{idx}/training", border_gt, epoch)
-        self._writer.add_images(f"DirectionGT{idx}/training", direction_gt.unsqueeze(1), epoch)
-        self._writer.add_images(f"Direction{idx}/training", direction.argmax(1).unsqueeze(1), epoch)
+        self._writer.add_images(f"DirectionGT{idx}/training", direction_gt.unsqueeze(1) / 8., epoch)
+        self._writer.add_images(f"Direction{idx}/training", direction.argmax(1).unsqueeze(1) / 8., epoch)
 
     def _save(self):
         path = os.path.join(self._config.checkpoint_path, self._config.EXPERIMENT_NAME)

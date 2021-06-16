@@ -1,6 +1,8 @@
 import enum
 import os
 
+from matplotlib import pyplot as plt
+import numpy as np
 import torch
 import tqdm
 
@@ -33,6 +35,24 @@ class MetricAggregator:
         self.seg_dice.append(seg_dice)
         self.cor_iou.append(cor_iou)
         self.cor_dice.append(cor_dice)
+        
+    @property
+    def mean_seg_iou(self):
+        return np.mean(self.seg_iou)
+    
+    @property
+    def mean_cor_iou(self):
+        return np.mean(self.cor_iou)
+
+        
+    @property
+    def mean_seg_dice(self):
+        return np.mean(self.seg_dice)
+    
+    @property
+    def mean_cor_dice(self):
+        return np.mean(self.cor_dice)
+
 
 class Evaluator:
     
@@ -49,24 +69,33 @@ class Evaluator:
             num_classes=config_segmentation.num_classes,
             output_stride=config_segmentation.output_stride,
             sync_bn=False
-        ).to(config_segmentation.device)
+        ).to(config_segmentation.device).eval()
         correction_model = config_corrector.model(
             num_classes=9,
             output_stride=8,
             sync_bn=False
-        ).to(config_corrector.device)
+        ).to(config_corrector.device).eval()
         ckpt_path_segmentation = os.path.join(config_segmentation.checkpoint_path, config_segmentation.EXPERIMENT_NAME, "checkpoint.pth")
-        ckpt_path_corrector = os.path.join(config_corrector.checkpoint_path, config_corrector.EXPERIMENT_NAME, "checkpoint.pth")
+        ckpt_path_corrector = os.path.join(config_corrector.checkpoint_path, config_corrector.EXPERIMENT_NAME, "corrector.pth")
         assert os.path.isfile(ckpt_path_segmentation), "Checkpoint segmentation needed"
         assert os.path.isfile(ckpt_path_corrector), "Checkpoint corrector needed"
-        segmentation_model.load_state_dict(torch.load(ckpt_path_segmentation))
+        segmentation_model.load_state_dict(torch.load(ckpt_path_segmentation)["model"])
         correction_model.load_state_dict(torch.load(ckpt_path_corrector))
         return cls(segmentation_model=segmentation_model, 
                    correction_model=correction_model)
 
-    def execute(self):
+    def execute(self, threshold):
         
         for idx, data in enumerate(tqdm.tqdm(self._data_loader)):
             image, labels = [d.to(self._cfg.device) for d in data]
-            seg_out = self._segmentation_model(image)
-            correction_out = self._correction_model(image)
+            with torch.no_grad():
+                seg_out = self._segmentation_model(image)
+                correction_out = self._correction_model(image)
+            is_boundary = (correction_out.squeeze()[:1, :, :].detach().cpu().numpy() > threshold)
+            direction = torch.argmax(correction_out.squeeze()[1:, :, :], dim=0)
+            plt.imshow(direction.cpu())
+            plt.savefig("test/{}.png".format(idx))
+
+if __name__ == "__main__":
+    evaluator = Evaluator.from_checkpoints(BaseConfigOpticDisc(), SegmentationConfig())
+    evaluator.execute(0.5)
